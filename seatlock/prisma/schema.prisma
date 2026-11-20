@@ -1,0 +1,256 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model audit_logs_0 {
+  id         BigInt   @id @default(autoincrement())
+  event_id   BigInt?
+  actor_id   BigInt?
+  action     String   @db.VarChar(50)
+  details    Json     @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [actor_id], references: [id], onUpdate: NoAction)
+
+  @@index([actor_id, created_at(sort: Desc)], map: "idx_audit_0_actor_created")
+  @@index([event_id, created_at(sort: Desc)], map: "idx_audit_0_event_created")
+}
+
+model audit_logs_1 {
+  id         BigInt   @id @default(autoincrement())
+  event_id   BigInt?
+  actor_id   BigInt?
+  action     String   @db.VarChar(50)
+  details    Json     @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [actor_id], references: [id], onUpdate: NoAction)
+
+  @@index([actor_id, created_at(sort: Desc)], map: "idx_audit_1_actor_created")
+  @@index([event_id, created_at(sort: Desc)], map: "idx_audit_1_event_created")
+}
+
+model audit_logs_2 {
+  id         BigInt   @id @default(autoincrement())
+  event_id   BigInt?
+  actor_id   BigInt?
+  action     String   @db.VarChar(50)
+  details    Json     @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [actor_id], references: [id], onUpdate: NoAction)
+
+  @@index([actor_id, created_at(sort: Desc)], map: "idx_audit_2_actor_created")
+  @@index([event_id, created_at(sort: Desc)], map: "idx_audit_2_event_created")
+}
+
+model audit_logs_3 {
+  id         BigInt   @id @default(autoincrement())
+  event_id   BigInt?
+  actor_id   BigInt?
+  action     String   @db.VarChar(50)
+  details    Json     @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [actor_id], references: [id], onUpdate: NoAction)
+
+  @@index([actor_id, created_at(sort: Desc)], map: "idx_audit_3_actor_created")
+  @@index([event_id, created_at(sort: Desc)], map: "idx_audit_3_event_created")
+}
+
+model booking_seats {
+  id            BigInt    @id @default(autoincrement())
+  booking_id    BigInt
+  seat_id       BigInt
+  checked_in_at DateTime? @db.Timestamptz(6)
+  checked_in_by BigInt?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  bookings      bookings  @relation(fields: [booking_id], references: [id], onUpdate: NoAction)
+  users         users?    @relation(fields: [checked_in_by], references: [id], onUpdate: NoAction)
+  seats         seats     @relation(fields: [seat_id], references: [id], onUpdate: NoAction)
+
+  @@unique([booking_id, seat_id], map: "unique_seat_per_booking")
+  @@index([booking_id], map: "idx_booking_seats_booking")
+  @@index([seat_id], map: "idx_booking_seats_seat")
+}
+
+model bookings {
+  id            BigInt          @id @default(autoincrement())
+  student_id    BigInt
+  event_id      BigInt
+  hold_id       BigInt?         @unique
+  status        booking_status  @default(CONFIRMED)
+  confirmed_at  DateTime        @default(now()) @db.Timestamptz(6)
+  cancelled_at  DateTime?       @db.Timestamptz(6)
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime        @default(now()) @db.Timestamptz(6)
+  booking_seats booking_seats[]
+  events        events          @relation(fields: [event_id], references: [id], onUpdate: NoAction)
+  holds         holds?          @relation(fields: [hold_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  users         users           @relation(fields: [student_id], references: [id], onUpdate: NoAction)
+  seat_claims   seat_claims[]
+
+  @@index([event_id], map: "idx_bookings_event")
+  @@index([event_id, status], map: "idx_bookings_event_status")
+  @@index([student_id], map: "idx_bookings_student")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model events {
+  id                BigInt       @id @default(autoincrement())
+  organizer_id      BigInt
+  title             String       @db.VarChar(200)
+  description       String?
+  venue             String       @db.VarChar(255)
+  starts_at         DateTime     @db.Timestamptz(6)
+  ends_at           DateTime     @db.Timestamptz(6)
+  booking_closes_at DateTime     @db.Timestamptz(6)
+  status            event_status @default(DRAFT)
+  version           Int          @default(1)
+  created_at        DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime     @default(now()) @db.Timestamptz(6)
+  bookings          bookings[]
+  users             users        @relation(fields: [organizer_id], references: [id], onUpdate: NoAction)
+  holds             holds[]
+  seats             seats[]
+
+  @@index([organizer_id], map: "idx_events_organizer")
+  @@index([status, starts_at], map: "idx_events_status_start")
+}
+
+model hold_seats {
+  id         BigInt   @id @default(autoincrement())
+  hold_id    BigInt
+  seat_id    BigInt
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  holds      holds    @relation(fields: [hold_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  seats      seats    @relation(fields: [seat_id], references: [id], onUpdate: NoAction)
+
+  @@unique([hold_id, seat_id], map: "unique_seat_per_hold")
+  @@index([seat_id], map: "idx_hold_seats_seat")
+}
+
+model holds {
+  id          BigInt        @id @default(autoincrement())
+  student_id  BigInt
+  event_id    BigInt
+  status      hold_status   @default(ACTIVE)
+  expires_at  DateTime      @db.Timestamptz(6)
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime      @default(now()) @db.Timestamptz(6)
+  bookings    bookings?
+  hold_seats  hold_seats[]
+  events      events        @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users         @relation(fields: [student_id], references: [id], onUpdate: NoAction)
+  seat_claims seat_claims[]
+
+  @@unique([student_id, event_id], map: "idx_one_active_hold_per_student_event", where: raw("(status = 'ACTIVE'::hold_status)"))
+  @@index([event_id], map: "idx_holds_event")
+  @@index([expires_at], map: "idx_holds_expiry", where: raw("(status = 'ACTIVE'::hold_status)"))
+  @@index([student_id], map: "idx_holds_student")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model seats {
+  id            BigInt          @id @default(autoincrement())
+  event_id      BigInt
+  section       String          @default("GENERAL") @db.VarChar(100)
+  row_label     String          @db.VarChar(20)
+  seat_number   Int
+  status        seat_status     @default(AVAILABLE)
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime        @default(now()) @db.Timestamptz(6)
+  booking_seats booking_seats[]
+  hold_seats    hold_seats[]
+  seat_claims   seat_claims?
+  events        events          @relation(fields: [event_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([event_id, section, row_label, seat_number], map: "unique_event_seat")
+  @@index([event_id], map: "idx_seats_event")
+  @@index([event_id, status], map: "idx_seats_event_status")
+}
+
+model users {
+  id            BigInt          @id @default(autoincrement())
+  name          String          @db.VarChar(120)
+  email         String          @unique @db.VarChar(255)
+  password_hash String
+  role          user_role       @default(STUDENT)
+  is_active     Boolean         @default(true)
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime        @default(now()) @db.Timestamptz(6)
+  audit_logs_0  audit_logs_0[]
+  audit_logs_1  audit_logs_1[]
+  audit_logs_2  audit_logs_2[]
+  audit_logs_3  audit_logs_3[]
+  booking_seats booking_seats[]
+  bookings      bookings[]
+  events        events[]
+  holds         holds[]
+  sessions      sessions[]
+
+  @@index([is_active], map: "idx_users_active")
+  @@index([role], map: "idx_users_role")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model seat_claims {
+  seat_id    BigInt    @id
+  hold_id    BigInt?
+  booking_id BigInt?
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  bookings   bookings? @relation(fields: [booking_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  holds      holds?    @relation(fields: [hold_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  seats      seats     @relation(fields: [seat_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([booking_id], map: "idx_seat_claims_booking", where: raw("(booking_id IS NOT NULL)"))
+  @@index([hold_id], map: "idx_seat_claims_hold", where: raw("(hold_id IS NOT NULL)"))
+}
+
+model sessions {
+  id           BigInt    @id @default(autoincrement())
+  user_id      BigInt
+  token_hash   String    @unique @db.VarChar(255)
+  expires_at   DateTime  @db.Timestamptz(6)
+  revoked_at   DateTime? @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  last_seen_at DateTime  @default(now()) @db.Timestamptz(6)
+  users        users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at], map: "idx_sessions_expiry", where: raw("(revoked_at IS NULL)"))
+  @@index([user_id], map: "idx_sessions_user")
+}
+
+enum booking_status {
+  CONFIRMED
+  CANCELLED
+}
+
+enum event_status {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum hold_status {
+  ACTIVE
+  CONFIRMED
+  EXPIRED
+  RELEASED
+}
+
+enum seat_status {
+  AVAILABLE
+  HELD
+  BOOKED
+  BLOCKED
+}
+
+enum user_role {
+  ADMIN
+  ORGANIZER
+  STUDENT
+}
